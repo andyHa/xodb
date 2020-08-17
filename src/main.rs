@@ -1,3 +1,4 @@
+mod response;
 mod request;
 
 
@@ -31,7 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn process(stream: TcpStream) -> Result<(), Box<dyn Error>> {
     let mut buffer = BytesMut::with_capacity(1024);
-    let mut response = BufWriter::new(stream);
+    let mut response = Response::new(BufWriter::new(stream));
     loop {
         let bytes_read = response.read_buf(&mut buffer).await?;
         if bytes_read == 0 {
@@ -47,8 +48,6 @@ async fn process(stream: TcpStream) -> Result<(), Box<dyn Error>> {
             }
         }
     }
-
-    Ok(())
 }
 //
 // async fn respond(req: Frame) -> Result<Frame, Box<dyn Error>> {

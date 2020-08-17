@@ -85,7 +85,6 @@ impl Request {
 
         let mut offset = 0;
         if data[0] != ASTERISK {
-            dbg!(data[0]);
             return Err(anyhow!("A request must be an array of bulk strings!"));
         } else {
             offset += 1;
