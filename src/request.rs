@@ -41,7 +41,11 @@ fn read_int(buffer: &BytesMut, offset: usize) -> anyhow::Result<Option<(i32, Ran
     while index < buffer.len() {
         let digit = buffer[index];
         if digit == CR {
-            return Ok(Some((len, Range { start: offset, end: index - 1 })));
+            return if buffer.len() >= index + 1 {
+                Ok(Some((len, Range { start: offset, end: index - 1 })))
+            } else {
+                Ok(None)
+            };
         }
         if digit < ZERO_DIGIT || digit > NINE_DIGIT {
             return Err(anyhow!("Malformed integer at position {}", index));
@@ -64,7 +68,7 @@ fn read_bulk_string(buffer: &BytesMut, offset: usize) -> anyhow::Result<Option<R
 
     if let Some((length, range)) = read_int(buffer, offset + 1)? {
         let next_offset = range.next_offset();
-        if buffer.len() > next_offset + length as usize {
+        if buffer.len() >= next_offset + length as usize + 2 {
             return Ok(Some(Range { start: next_offset, end: next_offset + length as usize - 1 }));
         }
     }
@@ -81,6 +85,7 @@ impl Request {
 
         let mut offset = 0;
         if data[0] != ASTERISK {
+            dbg!(data[0]);
             return Err(anyhow!("A request must be an array of bulk strings!"));
         } else {
             offset += 1;
@@ -107,6 +112,12 @@ impl Request {
             } else {
                 return Ok(None);
             }
+        }
+
+        if offset >= data.len() {
+            data.clear();
+        } else {
+            data.advance(offset);
         }
 
         Ok(Some(Request {

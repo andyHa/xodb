@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn process(stream: TcpStream) -> Result<(), Box<dyn Error>> {
-    let mut buffer = BytesMut::with_capacity(8192);
+    let mut buffer = BytesMut::with_capacity(1024);
     let mut response = BufWriter::new(stream);
     loop {
         let bytes_read = response.read_buf(&mut buffer).await?;
@@ -38,14 +38,13 @@ async fn process(stream: TcpStream) -> Result<(), Box<dyn Error>> {
             return Ok(());
         }
 
-        if buffer.len() > 2 {
-          //  if let Some(request) = Request::parse(&mut buffer).unwrap() {
-                response.write_all(b"+OK\r\n").await?;
-                response.flush().await?;
-                buffer.clear();
-       //     } else {
-       //         println!("{} {}", bytes_read, buffer.len());
-       //     }
+        if let Some(request) = Request::parse(&mut buffer).unwrap() {
+            response.write_all(b"+OK\r\n").await?;
+            response.flush().await?;
+
+            if buffer.len() == 0 && buffer.capacity() > 1024 {
+                buffer = BytesMut::with_capacity(1024);
+            }
         }
     }
 
